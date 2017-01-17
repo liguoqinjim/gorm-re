@@ -7,6 +7,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"io/ioutil"
 	"log"
+	"strings"
 )
 
 type Config struct {
@@ -29,25 +30,25 @@ func LoadConfig(data []byte) {
 }
 
 type Column struct {
-	TableCataLog           string
-	TableSchema            string
-	TableName              string
-	ColumnName             string
-	OrdinalPosition        string
-	ColumnDefault          string
-	IsNullable             string
-	DataType               string
-	CharacterMaximumLength string
-	CharacterOctetLength   string
-	NumericPrecision       string
-	NumericScale           string
-	CharacterSetName       string
-	CollationName          string
-	ColumnType             string
-	ColumnKey              string
-	Extra                  string
-	Privileges             string
-	ColumnComment          string
+	TableCataLog           sql.NullString
+	TableSchema            sql.NullString
+	TableName              sql.NullString
+	ColumnName             sql.NullString
+	OrdinalPosition        sql.NullString
+	ColumnDefault          sql.NullString
+	IsNullable             sql.NullString
+	DataType               sql.NullString
+	CharacterMaximumLength sql.NullString
+	CharacterOctetLength   sql.NullString
+	NumericPrecision       sql.NullString
+	NumericScale           sql.NullString
+	CharacterSetName       sql.NullString
+	CollationName          sql.NullString
+	ColumnType             sql.NullString
+	ColumnKey              sql.NullString
+	Extra                  sql.NullString
+	Privileges             sql.NullString
+	ColumnComment          sql.NullString
 }
 
 func GetColumns() []*Column {
@@ -65,25 +66,89 @@ func GetColumns() []*Column {
 	defer db.Close()
 
 	//select
-	sql := "select * from `COLUMNS` where TABLE_SCHEMA = ? order by TABLE_NAME,ORDINAL_POSITION"
-	rows, err := db.Query(sql, config.DBName)
+	querySql := "select * from `COLUMNS` where TABLE_SCHEMA = ? order by TABLE_NAME,ORDINAL_POSITION"
+	rows, err := db.Query(querySql, config.DBName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	//columnNames, err := rows.Columns()
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+
 	columns := make([]*Column, 0)
+
 	for rows.Next() {
 		column := new(Column)
-		rows.Scan(column.TableCataLog, column.TableSchema, column.TableName, column.ColumnName, column.OrdinalPosition,
-			column.ColumnDefault, column.IsNullable, column.DataType, column.CharacterMaximumLength, column.CharacterOctetLength,
-			column.NumericPrecision, column.NumericScale, column.CharacterSetName, column.CollationName, column.ColumnType, column.ColumnKey,
-			column.Extra, column.Privileges, column.ColumnComment)
+		err = rows.Scan(&column.TableCataLog, &column.TableSchema, &column.TableName, &column.ColumnName, &column.OrdinalPosition,
+			&column.ColumnDefault, &column.IsNullable, &column.DataType, &column.CharacterMaximumLength, &column.CharacterOctetLength,
+			&column.NumericPrecision, &column.NumericScale, &column.CollationName, &column.ColumnType, &column.ColumnKey, &column.ColumnKey,
+			&column.Extra, &column.Privileges, &column.ColumnComment)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		columns = append(columns, column)
 	}
 
-	fmt.Println("length =", len(columns))
+	return columns
+}
 
-	return nil
+func GenerateStructs(columns []*Column) { //逆向工程所有的表
+	tableName := ""
+
+	var tableColumns []*Column
+	for _, v := range columns {
+		if v.TableName.String != tableName { //新的一个表
+			if tableName != "" {
+				GenerateStruct(tableColumns)
+			}
+			tableName = v.TableName.String
+			tableColumns = make([]*Column, 0)
+		}
+		tableColumns = append(tableColumns, v)
+	}
+}
+func GenerateStruct(columns []*Column) string { //逆向工程一个表
+	structName := GetStructName(columns[0].TableName.String)
+
+	structContent := fmt.Sprintf("type %s struct{\n", structName)
+
+	structContent += "}\n"
+
+	fmt.Println(structContent)
+	return structContent
+}
+
+func GetStructName(tableName string) string { //表名转换到类名
+	tableName = strings.Replace(tableName, "t_", "", 1)
+	names := strings.Split(tableName, "_")
+
+	structName := ""
+	for _, v := range names {
+		structName = fmt.Sprintf("%s%s", structName, strings.Title(v))
+	}
+
+	return structName
+}
+
+func GetField(column Column) string {
+	fieldContent := ""
+
+	fieldName := GetFieldName(column.ColumnName.String)
+	fieldContent += fieldName
+
+	return fieldContent
+}
+func GetFieldName(columnName string) string {
+	names := strings.Split(columnName, "_")
+	fieldName := ""
+	for _, v := range names {
+		fieldName = fmt.Sprintf("%s%s", fieldName, strings.Title(v))
+	}
+
+	return fieldName
 }
 
 func main() {
@@ -97,5 +162,8 @@ func main() {
 	LoadConfig(data)
 
 	//连接数据库，查询columns表
-	GetColumns()
+	columns := GetColumns()
+
+	//开始生成struct
+	GenerateStructs(columns)
 }
