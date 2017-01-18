@@ -107,11 +107,12 @@ func GenerateStructs(modelFile *os.File, columns []*Column) { //逆向工程所�
 	packageName := fmt.Sprintf("package %s\n", myConfig.PackageName)
 	modelFile.WriteString(packageName)
 
+	//写每个Struct
 	var tableColumns []*Column
 	for _, v := range columns {
 		if v.TableName.String != tableName { //新的一个表
 			if tableName != "" {
-				GenerateStruct(modelFile, tableColumns)
+				GenerateStruct(modelFile, tableColumns) //生成Struct
 			}
 			tableName = v.TableName.String
 			tableColumns = make([]*Column, 0)
@@ -129,11 +130,19 @@ func GenerateStruct(modelFile *os.File, columns []*Column) string { //逆向工�
 		structContent += fmt.Sprintf("%s\n", fieldContent)
 	}
 
-	structContent += "}\n\n"
+	structContent += "}\n"
 
 	modelFile.WriteString(structContent)
 
+	//写Struct对应的表命 (gorm中的TableName())
+	structTableName := GetStructTableName(structName, columns[0].TableName.String)
+	modelFile.WriteString(structTableName + "\n")
+
 	return structContent
+}
+
+func GetStructTableName(structName, tableName string) string {
+	return fmt.Sprintf("func (%s) TableName() string {\n return \"%s\"\n }\n", structName, tableName)
 }
 
 func GetStructName(tableName string) string { //表名转换到类名
