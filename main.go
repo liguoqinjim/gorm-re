@@ -88,7 +88,7 @@ func GetColumns() []*Column {
 		column := new(Column)
 		err = rows.Scan(&column.TableCataLog, &column.TableSchema, &column.TableName, &column.ColumnName, &column.OrdinalPosition,
 			&column.ColumnDefault, &column.IsNullable, &column.DataType, &column.CharacterMaximumLength, &column.CharacterOctetLength,
-			&column.NumericPrecision, &column.NumericScale, &column.CollationName, &column.ColumnType, &column.ColumnKey, &column.ColumnKey,
+			&column.NumericPrecision, &column.NumericScale, &column.CharacterSetName, &column.CollationName, &column.ColumnType, &column.ColumnKey,
 			&column.Extra, &column.Privileges, &column.ColumnComment)
 		if err != nil {
 			log.Fatal(err)
@@ -196,6 +196,9 @@ func GetFieldTag(column *Column) string {
 
 	//添加列名
 	tags = append(tags, "column:"+column.ColumnName.String)
+
+	//添加type
+	tags = append(tags, "type:"+column.ColumnType.String)
 
 	//添加主键
 	switch column.ColumnKey.String {
