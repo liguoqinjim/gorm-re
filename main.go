@@ -7,6 +7,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"io/ioutil"
 	"log"
+	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -15,16 +17,19 @@ type Config struct {
 	DBUser string
 	DBPwd  string
 	DBName string
+
+	ModelFileName string
+	PackageName   string
 }
 
-var config Config
+var myConfig Config
 
 func LoadConfig(data []byte) {
-	err := json.Unmarshal(data, &config)
+	err := json.Unmarshal(data, &myConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if config.DBName == "DBName" {
+	if myConfig.DBName == "DBName" {
 		log.Fatal("请修改配置文件中的数据库配置")
 	}
 }
@@ -52,7 +57,7 @@ type Column struct {
 }
 
 func GetColumns() []*Column {
-	connectInfo := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8&parseTime=True&loc=Local", config.DBUser, config.DBPwd, config.DBHost, "information_schema")
+	connectInfo := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8&parseTime=True&loc=Local", myConfig.DBUser, myConfig.DBPwd, myConfig.DBHost, "information_schema")
 	db, err := sql.Open("mysql", connectInfo)
 	if err != nil {
 		log.Fatal(err)
@@ -67,7 +72,7 @@ func GetColumns() []*Column {
 
 	//select
 	querySql := "select * from `COLUMNS` where TABLE_SCHEMA = ? order by TABLE_NAME,ORDINAL_POSITION"
-	rows, err := db.Query(querySql, config.DBName)
+	rows, err := db.Query(querySql, myConfig.DBName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,14 +100,18 @@ func GetColumns() []*Column {
 	return columns
 }
 
-func GenerateStructs(columns []*Column) { //逆向工程所有的表
+func GenerateStructs(modelFile *os.File, columns []*Column) { //逆向工程所有的表
 	tableName := ""
+
+	//写入package名字
+	packageName := fmt.Sprintf("package %s\n", myConfig.PackageName)
+	modelFile.WriteString(packageName)
 
 	var tableColumns []*Column
 	for _, v := range columns {
 		if v.TableName.String != tableName { //新的一个表
 			if tableName != "" {
-				GenerateStruct(tableColumns)
+				GenerateStruct(modelFile, tableColumns)
 			}
 			tableName = v.TableName.String
 			tableColumns = make([]*Column, 0)
@@ -110,18 +119,19 @@ func GenerateStructs(columns []*Column) { //逆向工程所有的表
 		tableColumns = append(tableColumns, v)
 	}
 }
-func GenerateStruct(columns []*Column) string { //逆向工程一个表
+func GenerateStruct(modelFile *os.File, columns []*Column) string { //逆向工程一个表
 	structName := GetStructName(columns[0].TableName.String)
 
 	structContent := fmt.Sprintf("type %s struct{\n", structName)
-	fmt.Println(structContent)
 
 	for _, v := range columns {
 		fieldContent := GetField(v)
-		fmt.Println(fieldContent)
+		structContent += fmt.Sprintf("%s\n", fieldContent)
 	}
 
-	structContent += "}\n"
+	structContent += "}\n\n"
+
+	modelFile.WriteString(structContent)
 
 	return structContent
 }
@@ -216,6 +226,17 @@ func GetFieldTag(column *Column) string {
 	return tag
 }
 
+func GetFileName() string { //得到要生成的go文件的文件名
+	if myConfig.ModelFileName == "" {
+		return "model.go"
+	} else {
+		if !strings.Contains(myConfig.ModelFileName, ".go") {
+			return fmt.Sprintf("%s.go", myConfig.ModelFileName)
+		}
+	}
+	return myConfig.ModelFileName
+}
+
 func main() {
 	//读取config.json
 	data, err := ioutil.ReadFile("config.json")
@@ -229,6 +250,30 @@ func main() {
 	//连接数据库，查询columns表
 	columns := GetColumns()
 
-	//开始生成struct
-	GenerateStructs(columns)
+	if len(columns) > 0 {
+		//新建文件
+		f, err := os.Create(GetFileName())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		//开始生成struct
+		GenerateStructs(f, columns)
+
+		err = f.Sync()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		f.Close()
+	}
+
+	//go fmt
+	goFmtCmd := exec.Command("go", "fmt", GetFileName())
+	_, err = goFmtCmd.Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("生成成功")
 }
