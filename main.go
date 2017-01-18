@@ -114,10 +114,15 @@ func GenerateStruct(columns []*Column) string { //逆向工程一个表
 	structName := GetStructName(columns[0].TableName.String)
 
 	structContent := fmt.Sprintf("type %s struct{\n", structName)
+	fmt.Println(structContent)
+
+	for _, v := range columns {
+		fieldContent := GetField(v)
+		fmt.Println(fieldContent)
+	}
 
 	structContent += "}\n"
 
-	fmt.Println(structContent)
 	return structContent
 }
 
@@ -133,11 +138,17 @@ func GetStructName(tableName string) string { //表名转换到类名
 	return structName
 }
 
-func GetField(column Column) string {
+func GetField(column *Column) string {
 	fieldContent := ""
 
 	fieldName := GetFieldName(column.ColumnName.String)
-	fieldContent += fieldName
+	fieldContent = fmt.Sprintf("%s %s", fieldContent, fieldName)
+
+	fieldType := GetFieldType(column)
+	fieldContent = fmt.Sprintf("%s %s", fieldContent, fieldType)
+
+	fieldTag := GetFieldTag(column)
+	fieldContent = fmt.Sprintf("%s %s", fieldContent, fieldTag)
 
 	return fieldContent
 }
@@ -149,6 +160,60 @@ func GetFieldName(columnName string) string {
 	}
 
 	return fieldName
+}
+func GetFieldType(column *Column) string {
+	switch column.DataType.String {
+	case "varchar":
+		return "string"
+	case "char":
+		return "string"
+	default:
+		return column.DataType.String
+	}
+}
+func GetFieldTag(column *Column) string {
+	tag := "`gorm:\""
+	tags := []string{}
+
+	//添加列名
+	tags = append(tags, "column:"+column.ColumnName.String)
+
+	//添加主键
+	switch column.ColumnKey.String {
+	case "PRI":
+		tags = append(tags, "primary_key")
+	}
+
+	//添加自增
+	switch column.Extra.String {
+	case "auto_increment":
+		tags = append(tags, "AUTO_INCREMENT")
+	}
+
+	//添加varchar,char长度
+	if column.DataType.String == "varchar" || column.DataType.String == "char" {
+		tags = append(tags, "size:"+column.CharacterMaximumLength.String)
+	}
+
+	//添加not null
+	if column.IsNullable.String == "NO" {
+		tags = append(tags, "not null")
+	}
+
+	//添加default
+	if column.ColumnDefault.Valid {
+		tags = append(tags, "default:"+column.ColumnDefault.String)
+	}
+
+	for n, v := range tags {
+		tag += v
+		if n != len(tags)-1 {
+			tag += ";"
+		}
+	}
+
+	tag += "\"`"
+	return tag
 }
 
 func main() {
