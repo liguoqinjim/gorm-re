@@ -4,3 +4,5 @@ gorm_re
 
 ###todo
 1.需要更新config.json git update-index --no-assume-unchanged config.json
+
+2.mysql8里面columns表多加了两列
