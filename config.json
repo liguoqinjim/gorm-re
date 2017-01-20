@@ -2,5 +2,10 @@
     "DBHost": "DBHost",
     "DBUser": "DBUser",
     "DBPwd": "DBPwd",
-    "DBName": "DBName"
+    "DBName": "DBName",
+
+    "ModelFileName" :"model",
+    "PackageName" : "main",
+
+    "Mysql8":"true"
 }

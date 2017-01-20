@@ -47,6 +47,7 @@ type Column struct {
 	CharacterOctetLength   sql.NullString
 	NumericPrecision       sql.NullString
 	NumericScale           sql.NullString
+	DatetimePrecision      sql.NullString
 	CharacterSetName       sql.NullString
 	CollationName          sql.NullString
 	ColumnType             sql.NullString
@@ -54,6 +55,7 @@ type Column struct {
 	Extra                  sql.NullString
 	Privileges             sql.NullString
 	ColumnComment          sql.NullString
+	GenerationExpression   sql.NullString
 }
 
 func GetColumns() []*Column {
