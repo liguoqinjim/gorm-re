@@ -20,6 +20,8 @@ type Config struct {
 
 	ModelFileName string
 	PackageName   string
+
+	Mysql8 string
 }
 
 var myConfig Config
@@ -88,10 +90,17 @@ func GetColumns() []*Column {
 
 	for rows.Next() {
 		column := new(Column)
-		err = rows.Scan(&column.TableCataLog, &column.TableSchema, &column.TableName, &column.ColumnName, &column.OrdinalPosition,
-			&column.ColumnDefault, &column.IsNullable, &column.DataType, &column.CharacterMaximumLength, &column.CharacterOctetLength,
-			&column.NumericPrecision, &column.NumericScale, &column.CharacterSetName, &column.CollationName, &column.ColumnType, &column.ColumnKey,
-			&column.Extra, &column.Privileges, &column.ColumnComment)
+		if myConfig.Mysql8 == "false" {
+			err = rows.Scan(&column.TableCataLog, &column.TableSchema, &column.TableName, &column.ColumnName, &column.OrdinalPosition,
+				&column.ColumnDefault, &column.IsNullable, &column.DataType, &column.CharacterMaximumLength, &column.CharacterOctetLength,
+				&column.NumericPrecision, &column.NumericScale, &column.CharacterSetName, &column.CollationName, &column.ColumnType, &column.ColumnKey,
+				&column.Extra, &column.Privileges, &column.ColumnComment)
+		} else {
+			err = rows.Scan(&column.TableCataLog, &column.TableSchema, &column.TableName, &column.ColumnName, &column.OrdinalPosition,
+				&column.ColumnDefault, &column.IsNullable, &column.DataType, &column.CharacterMaximumLength, &column.CharacterOctetLength,
+				&column.NumericPrecision, &column.NumericScale, &column.DatetimePrecision, &column.CharacterSetName, &column.CollationName, &column.ColumnType, &column.ColumnKey,
+				&column.Extra, &column.Privileges, &column.ColumnComment, &column.GenerationExpression)
+		}
 		if err != nil {
 			log.Fatal(err)
 		}
