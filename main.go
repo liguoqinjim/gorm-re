@@ -12,6 +12,10 @@ import (
 	"strings"
 )
 
+func init() {
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
+}
+
 type Config struct {
 	DBHost string
 	DBUser string
@@ -90,17 +94,26 @@ func GetColumns() []*Column {
 
 	for rows.Next() {
 		column := new(Column)
-		if myConfig.Mysql8 == "false" {
-			err = rows.Scan(&column.TableCataLog, &column.TableSchema, &column.TableName, &column.ColumnName, &column.OrdinalPosition,
-				&column.ColumnDefault, &column.IsNullable, &column.DataType, &column.CharacterMaximumLength, &column.CharacterOctetLength,
-				&column.NumericPrecision, &column.NumericScale, &column.CharacterSetName, &column.CollationName, &column.ColumnType, &column.ColumnKey,
-				&column.Extra, &column.Privileges, &column.ColumnComment)
-		} else {
+		//各个版本的mysql这个表会有不同
+		err = rows.Scan(&column.TableCataLog, &column.TableSchema, &column.TableName, &column.ColumnName, &column.OrdinalPosition,
+			&column.ColumnDefault, &column.IsNullable, &column.DataType, &column.CharacterMaximumLength, &column.CharacterOctetLength,
+			&column.NumericPrecision, &column.NumericScale, &column.CharacterSetName, &column.CollationName, &column.ColumnType, &column.ColumnKey,
+			&column.Extra, &column.Privileges, &column.ColumnComment)
+		if err != nil {
+			//mysql8
 			err = rows.Scan(&column.TableCataLog, &column.TableSchema, &column.TableName, &column.ColumnName, &column.OrdinalPosition,
 				&column.ColumnDefault, &column.IsNullable, &column.DataType, &column.CharacterMaximumLength, &column.CharacterOctetLength,
 				&column.NumericPrecision, &column.NumericScale, &column.DatetimePrecision, &column.CharacterSetName, &column.CollationName, &column.ColumnType, &column.ColumnKey,
 				&column.Extra, &column.Privileges, &column.ColumnComment, &column.GenerationExpression)
 		}
+		if err != nil {
+			//5.6.24
+			err = rows.Scan(&column.TableCataLog, &column.TableSchema, &column.TableName, &column.ColumnName, &column.OrdinalPosition,
+				&column.ColumnDefault, &column.IsNullable, &column.DataType, &column.CharacterMaximumLength, &column.CharacterOctetLength,
+				&column.NumericPrecision, &column.NumericScale, &column.DatetimePrecision, &column.CharacterSetName, &column.CollationName, &column.ColumnType, &column.ColumnKey,
+				&column.Extra, &column.Privileges, &column.ColumnComment)
+		}
+
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -120,7 +133,7 @@ func GenerateStructs(modelFile *os.File, columns []*Column) { //逆向工程所�
 
 	//写每个Struct
 	var tableColumns []*Column
-	for _, v := range columns {
+	for n, v := range columns {
 		if v.TableName.String != tableName { //新的一个表
 			if tableName != "" {
 				GenerateStruct(modelFile, tableColumns) //生成Struct
@@ -128,6 +141,14 @@ func GenerateStructs(modelFile *os.File, columns []*Column) { //逆向工程所�
 			tableName = v.TableName.String
 			tableColumns = make([]*Column, 0)
 		}
+
+		if n == len(columns)-1 {
+			tableColumns = append(tableColumns, v)
+
+			GenerateStruct(modelFile, tableColumns) //生成Struct
+			break
+		}
+
 		tableColumns = append(tableColumns, v)
 	}
 }
@@ -197,6 +218,10 @@ func GetFieldType(column *Column) string {
 		return "string"
 	case "char":
 		return "string"
+	case "tinyint":
+		return "int"
+	case "datetime":
+		return "time.Time"
 	default:
 		return column.DataType.String
 	}
