@@ -220,7 +220,11 @@ func GetFieldType(column *Column) string {
 		return "string"
 	case "tinyint":
 		return "int"
+	case "double":
+		return "float64"
 	case "datetime":
+		return "time.Time"
+	case "timestamp":
 		return "time.Time"
 	default:
 		return column.DataType.String
