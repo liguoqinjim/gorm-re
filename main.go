@@ -12,6 +12,10 @@ import (
 	"strings"
 )
 
+const (
+	jsonTag = true
+)
+
 func init() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 }
@@ -273,8 +277,13 @@ func GetFieldTag(column *Column) string {
 			tag += ";"
 		}
 	}
+	tag += `"`
 
-	tag += "\"`"
+	if jsonTag {
+		tag += fmt.Sprintf(` json:"%s"`, column.ColumnName.String)
+	}
+
+	tag += "`"
 	return tag
 }
 
@@ -324,7 +333,7 @@ func main() {
 	goFmtCmd := exec.Command("go", "fmt", GetFileName())
 	_, err = goFmtCmd.Output()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("goFmtCmd output error:%v", err)
 	}
 
 	fmt.Println("生成成功")
