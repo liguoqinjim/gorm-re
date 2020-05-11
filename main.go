@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/iancoleman/strcase"
 	"io/ioutil"
 	"log"
 	"os"
@@ -226,6 +227,8 @@ func GetFieldType(column *Column) string {
 		return "int"
 	case "double":
 		return "float64"
+	case "float":
+		return "float64"
 	case "datetime":
 		return "time.Time"
 	case "timestamp":
@@ -280,7 +283,7 @@ func GetFieldTag(column *Column) string {
 	tag += `"`
 
 	if jsonTag {
-		tag += fmt.Sprintf(` json:"%s"`, column.ColumnName.String)
+		tag += fmt.Sprintf(` json:"%s"`, strcase.ToLowerCamel(column.ColumnName.String))
 	}
 
 	tag += "`"
