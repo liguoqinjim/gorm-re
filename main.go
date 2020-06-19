@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/iancoleman/strcase"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/iancoleman/strcase"
 )
 
 const (
@@ -23,6 +24,7 @@ func init() {
 
 type Config struct {
 	DBHost string
+	DBPort int
 	DBUser string
 	DBPwd  string
 	DBName string
@@ -70,7 +72,12 @@ type Column struct {
 }
 
 func GetColumns() []*Column {
-	connectInfo := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8&parseTime=True&loc=Local", myConfig.DBUser, myConfig.DBPwd, myConfig.DBHost, "information_schema")
+	var connectInfo string
+	if myConfig.DBPort == 0 {
+		connectInfo = fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8&parseTime=True&loc=Local", myConfig.DBUser, myConfig.DBPwd, myConfig.DBHost, "information_schema")
+	} else {
+		connectInfo = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local", myConfig.DBUser, myConfig.DBPwd, myConfig.DBHost, myConfig.DBPort, "information_schema")
+	}
 	db, err := sql.Open("mysql", connectInfo)
 	if err != nil {
 		log.Fatal(err)
