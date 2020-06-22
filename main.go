@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -145,10 +146,17 @@ func GenerateStructs(modelFile *os.File, columns []*Column) { //逆向工程所�
 
 	//写每个Struct
 	var tableColumns []*Column
+	processedTableMap := make(map[string]int)
+
 	for n, v := range columns {
+		ftName := formatTableName(tableName)
+
 		if v.TableName.String != tableName { //新的一个表
 			if tableName != "" {
-				GenerateStruct(modelFile, tableColumns) //生成Struct
+				if _, ok := processedTableMap[ftName]; !ok {
+					GenerateStruct(modelFile, tableColumns, ftName) //生成Struct
+					processedTableMap[ftName] = 1
+				}
 			}
 			tableName = v.TableName.String
 			tableColumns = make([]*Column, 0)
@@ -157,15 +165,18 @@ func GenerateStructs(modelFile *os.File, columns []*Column) { //逆向工程所�
 		if n == len(columns)-1 {
 			tableColumns = append(tableColumns, v)
 
-			GenerateStruct(modelFile, tableColumns) //生成Struct
+			if _, ok := processedTableMap[ftName]; !ok {
+				GenerateStruct(modelFile, tableColumns, ftName) //生成Struct
+				processedTableMap[ftName] = 1
+			}
 			break
 		}
 
 		tableColumns = append(tableColumns, v)
 	}
 }
-func GenerateStruct(modelFile *os.File, columns []*Column) string { //逆向工程一个表
-	structName := GetStructName(columns[0].TableName.String)
+func GenerateStruct(modelFile *os.File, columns []*Column, tableName string) string { //逆向工程一个表
+	structName := GetStructName(tableName)
 
 	structContent := fmt.Sprintf("type %s struct{\n", structName)
 
@@ -179,7 +190,7 @@ func GenerateStruct(modelFile *os.File, columns []*Column) string { //逆向工�
 	modelFile.WriteString(structContent)
 
 	//写Struct对应的表命 (gorm中的TableName())
-	structTableName := GetStructTableName(structName, columns[0].TableName.String)
+	structTableName := GetStructTableName(structName, tableName)
 	modelFile.WriteString(structTableName + "\n")
 
 	return structContent
@@ -347,4 +358,15 @@ func main() {
 	}
 
 	fmt.Println("生成成功")
+}
+
+//处理分表的情况，t_user_0,t_user_1这种
+func formatTableName(tableName string) string {
+	s := strings.Split(tableName, "_")
+
+	if _, err := strconv.Atoi(s[len(s)-1]); err != nil {
+		return tableName
+	} else {
+		return strings.Join(s[:len(s)-1], "_")
+	}
 }
