@@ -243,6 +243,8 @@ func GetFieldType(column *Column) string {
 		return "string"
 	case "tinyint":
 		return "int"
+	case "bigint":
+		return "int64"
 	case "double":
 		return "float64"
 	case "float":
