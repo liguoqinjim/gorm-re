@@ -34,7 +34,14 @@ type Config struct {
 	PackageName   string
 
 	Mysql8 string
+
+	Version int //gorm的version
 }
+
+const(
+	GORM_VERSION_1 = iota + 1
+	GROM_VERSION_2
+)
 
 var myConfig Config
 
@@ -270,13 +277,21 @@ func GetFieldTag(column *Column) string {
 	//添加主键
 	switch column.ColumnKey.String {
 	case "PRI":
-		tags = append(tags, "primary_key")
+		if myConfig.Version == GORM_VERSION_1{
+			tags = append(tags, "primary_key")
+		}else if myConfig.Version == GROM_VERSION_2{
+			tags = append(tags,"primaryKey")
+		}
 	}
 
 	//添加自增
 	switch column.Extra.String {
 	case "auto_increment":
-		tags = append(tags, "AUTO_INCREMENT")
+		if myConfig.Version == GORM_VERSION_1{
+			tags = append(tags, "AUTO_INCREMENT")
+		}else if myConfig.Version == GROM_VERSION_2{
+			tags = append(tags, "autoIncrement")
+		}
 	}
 
 	//添加varchar,char长度
