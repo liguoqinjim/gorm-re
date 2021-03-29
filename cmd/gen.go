@@ -16,8 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	log "github.com/sirupsen/logrus"
-
+	"github.com/liguoqinjim/gorm-re/re"
 	"github.com/spf13/cobra"
 )
 
@@ -29,8 +28,17 @@ var genCmd = &cobra.Command{
 	Run:   gen,
 }
 
+var (
+	filepath string
+)
+
 func init() {
 	rootCmd.AddCommand(genCmd)
+
+	genCmd.Flags().StringVarP(&filepath, "file", "f", "", "配置文件")
+	//if err := cmd.MarkFlagRequired("file"); err != nil {
+	//	log.Errorf("make required error:%v", err)
+	//}
 
 	// Here you will define your flags and configuration settings.
 
@@ -44,14 +52,5 @@ func init() {
 }
 
 func gen(cmd *cobra.Command, args []string) {
-	//localCmd.Flags().StringVarP(&Source, "source", "s", "", "Source directory to read from")
-	var filepath string
-	cmd.Flags().StringVarP(&filepath, "file", "f", "1", "配置文件")
-	cmd.Flags().StringVarP(&filepath, "file2", "c", "1", "配置文件")
-	//cmd.Flags().rootCmd.MarkFlagRequired("region")
-	if err := cmd.MarkFlagRequired("file"); err != nil {
-		log.Errorf("make required error:%v", err)
-	}
-
-	log.Println("filepath=", filepath)
+	re.RE(filepath, "", 0, ",", "", "", "", "", "", 1)
 }

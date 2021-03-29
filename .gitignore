@@ -87,5 +87,4 @@ fabric.properties
 # vendor/
 
 model.go
-config*.json
-config.json.bak
+config01.json

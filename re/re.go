@@ -1,4 +1,4 @@
-package main
+package re
 
 import (
 	"database/sql"
@@ -339,8 +339,9 @@ func GetFileName() string { //得到要生成的go文件的文件名
 //逆向
 func RE(filepath, host string, port int, user, password, dbName, modelFileName, packageName, mysql8 string, version int) {
 	//读取config.json
+	log.Println("filepath=", filepath)
 	if filepath != "" {
-		data, err := ioutil.ReadFile("config.json")
+		data, err := ioutil.ReadFile(filepath)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -382,7 +383,7 @@ func RE(filepath, host string, port int, user, password, dbName, modelFileName, 
 
 	//go fmt
 	goFmtCmd := exec.Command("go", "fmt", GetFileName())
-	_, err = goFmtCmd.Output()
+	_, err := goFmtCmd.Output()
 	if err != nil {
 		log.Fatalf("goFmtCmd output error:%v", err)
 	}
