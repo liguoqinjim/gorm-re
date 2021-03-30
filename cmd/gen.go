@@ -30,12 +30,34 @@ var genCmd = &cobra.Command{
 
 var (
 	filepath string
+
+	host     string
+	port     int
+	user     string
+	password string
+	dbName   string
+
+	output      string
+	packageName string
+	mysql8      bool
+	gormVersion int
 )
 
 func init() {
 	rootCmd.AddCommand(genCmd)
 
 	genCmd.Flags().StringVarP(&filepath, "file", "f", "", "配置文件")
+
+	//数据库
+	genCmd.Flags().StringVarP(&host, "host", "H", "127.0.0.1", "database host")
+	genCmd.Flags().IntVarP(&port, "port", "P", 3306, "database port")
+	genCmd.Flags().StringVarP(&user, "user", "u", "root", "database user")
+	genCmd.Flags().StringVarP(&password, "pwd", "p", "", "database password")
+	genCmd.Flags().StringVar(&dbName, "dbName", "", "database name")
+	genCmd.Flags().StringVar(&output, "output", "model.go", "output file name")
+	genCmd.Flags().StringVar(&packageName, "package", "model", "package name")
+	genCmd.Flags().IntVarP(&gormVersion, "version", "v", 1, "gorm version")
+
 	//if err := cmd.MarkFlagRequired("file"); err != nil {
 	//	log.Errorf("make required error:%v", err)
 	//}
@@ -52,5 +74,5 @@ func init() {
 }
 
 func gen(cmd *cobra.Command, args []string) {
-	re.RE(filepath, "", 0, ",", "", "", "", "", "", 1)
+	re.RE(filepath, host, port, user, password, dbName, output, packageName, "", gormVersion)
 }
